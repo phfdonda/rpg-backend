@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",                /* Versão do JavaScript de saída */
+    "module": "CommonJS",              /* Sistema de módulo de saída */
+    "outDir": "./dist",                /* Diretório de saída para arquivos compilados */
+    "rootDir": "./src",                /* Diretório raiz dos arquivos TypeScript */
+    "strict": true,                    /* Habilita todas as opções de verificação de tipo estrita */
+    "esModuleInterop": true,           /* Permite importação de módulos CommonJS como ES Modules */
+    "skipLibCheck": true,              /* Pula a verificação de tipo de arquivos de declaração de bibliotecas */
+    "forceConsistentCasingInFileNames": true, /* Garante o uso consistente de maiúsculas/minúsculas nos nomes de arquivo */
+    "resolveJsonModule": true,         /* Permite importação de módulos JSON */
+    "allowJs": true,                   /* Permite que arquivos .js sejam compilados */
+    "sourceMap": true,                 /* Gera arquivos .map para depuração */
+    "baseUrl": ".",                    /* Define o diretório base para resolução de módulos */
+    "paths": {                         /* Configuração de aliases para importações */
+      "@/*": ["src/*"],
+      "@config/*": ["src/config/*"],
+      "@api/*": ["src/api/*"],
+      "@utils/*": ["src/utils/*"],
+      "@types/*": ["src/types/*"]
+    },
+    "moduleResolution": "node",        /* Estratégia de resolução de módulos */
+    "removeComments": false,           /* Mantém comentários no código compilado */
+    "noImplicitAny": true,            /* Gera erro em expressões e declarações com tipo 'any' implícito */
+    "noUnusedLocals": true,           /* Reporta erros em variáveis locais não utilizadas */
+    "noUnusedParameters": true,        /* Reporta erros em parâmetros não utilizados */
+    "noImplicitReturns": true,        /* Reporta erro quando nem todos os caminhos em uma função retornam um valor */
+    "noFallthroughCasesInSwitch": true /* Reporta erros para casos de fallthrough em switch */
+  },
+  "include": ["src/**/*.ts", "src/**/*.js"], /* Inclui todos os arquivos TypeScript e JavaScript na pasta src */
+  "exclude": ["node_modules", "dist"]  /* Exclui a pasta node_modules e dist */
+}

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPG Narrator AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .story-container {
+            height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold mb-2">RPG Narrator AI</h1>
+            <p class="text-gray-400">Sua aventura começa aqui</p>
+        </header>
+
+        <div class="max-w-4xl mx-auto">
+            <!-- Login Section -->
+            <div id="loginSection" class="mb-8 text-center">
+                <button id="loginButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    Entrar com Google
+                </button>
+            </div>
+
+            <!-- Game Section (hidden initially) -->
+            <div id="gameSection" class="hidden">
+                <div class="bg-gray-800 rounded-lg p-6 mb-6">
+                    <h2 class="text-2xl font-bold mb-4">Sua História</h2>
+                    <div id="storyContainer" class="story-container bg-gray-700 p-4 rounded mb-4">
+                        <!-- Story content will be added here -->
+                    </div>
+                </div>
+
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <h2 class="text-2xl font-bold mb-4">Controle a Narrativa</h2>
+                    <div class="mb-4">
+                        <label class="block text-gray-400 mb-2">Contexto da História</label>
+                        <textarea id="contextInput" class="w-full bg-gray-700 rounded p-2" rows="3" 
+                            placeholder="Descreva o contexto da sua história..."></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-400 mb-2">Sua Ação</label>
+                        <textarea id="actionInput" class="w-full bg-gray-700 rounded p-2" rows="3" 
+                            placeholder="Descreva o que seu personagem faz..."></textarea>
+                    </div>
+                    <button id="generateButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-2">
+                        Gerar Narrativa
+                    </button>
+                    <button id="saveButton" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
+                        Salvar no Google Drive
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000';
+        let accessToken = null;
+
+        // Login with Google
+        document.getElementById('loginButton').addEventListener('click', async () => {
+            const response = await fetch(`${API_URL}/auth/google`);
+            const data = await response.json();
+            window.location.href = data.url;
+        });
+
+        // Handle Google OAuth callback
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        if (code) {
+            handleGoogleCallback(code);
+        }
+
+        async function handleGoogleCallback(code) {
+            try {
+                const response = await fetch(`${API_URL}/auth/google/callback`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    accessToken = data.tokens.access_token;
+                    document.getElementById('loginSection').classList.add('hidden');
+                    document.getElementById('gameSection').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Authentication failed:', error);
+            }
+        }
+
+        // Generate story
+        document.getElementById('generateButton').addEventListener('click', async () => {
+            const context = document.getElementById('contextInput').value;
+            const action = document.getElementById('actionInput').value;
+            
+            try {
+                const response = await fetch(`${API_URL}/generate-story`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: action, context })
+                });
+                const data = await response.json();
+                
+                const storyContainer = document.getElementById('storyContainer');
+                const storyElement = document.createElement('p');
+                storyElement.textContent = data.story;
+                storyContainer.appendChild(storyElement);
+                storyContainer.scrollTop = storyContainer.scrollHeight;
+            } catch (error) {
+                console.error('Failed to generate story:', error);
+            }
+        });
+
+        // Save to Google Drive
+        document.getElementById('saveButton').addEventListener('click', async () => {
+            const storyContent = document.getElementById('storyContainer').innerText;
+            const title = prompt('Digite um título para sua história:');
+            
+            if (!title) return;
+
+            try {
+                const response = await fetch(`${API_URL}/save-to-drive`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'access_token': accessToken
+                    },
+                    body: JSON.stringify({
+                        content: storyContent,
+                        title: `${title}.txt`
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert('História salva com sucesso no Google Drive!');
+                }
+            } catch (error) {
+                console.error('Failed to save to Drive:', error);
+                alert('Erro ao salvar no Google Drive');
+            }
+        });
+    </script>
+</body>
+</html> 
