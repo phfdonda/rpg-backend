@@ -3,7 +3,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 // Configuração do Gemini
-export const GEMINI_API_KEY = process.env.GEMINI_API_KEY || ''
+export const GEMINI_API_KEY = process.env.GEMINI_API_KEY
 
 // Configuração do Google Drive
 export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || ''

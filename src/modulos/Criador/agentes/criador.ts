@@ -3,7 +3,6 @@
  */
 
 import { gemini } from '../../../infra/ia'
-import { GeminiResponse } from '../../../infra/ia/gemini/tipos'
 import { ContextoCriacao, Criacao } from '../tipos'
 import { DIRETRIZES_CRIACAO, TIPOS_ELEMENTOS, REGRAS_CRIACAO } from '../regras'
 
@@ -42,45 +41,30 @@ REGRAS DE CRIAÇÃO:
   * Mínimo de ${REGRAS_CRIACAO.conexoes.minPorElemento} e máximo de ${REGRAS_CRIACAO.conexoes.maxPorElemento} por elemento
 
 CONTEXTO ATUAL:
-${JSON.stringify(contexto, null, 2)}
-
-Responda apenas com um objeto JSON contendo:
-{
-    "elementos": [
-        {
-            "id": "string",
-            "nome": "string",
-            "descricao": "string",
-            "tipo": "personagem|local|item|inimigo|evento",
-            "atributos": {},
-            "relacionamentos": {}
-        }
-    ],
-    "narrativa": {
-        "introducao": "string",
-        "desenvolvimento": "string",
-        "conclusao": "string"
-    },
-    "conexoes": {
-        "entreElementos": {},
-        "comNarrativa": {}
-    }
-}`
+${JSON.stringify(contexto, null, 2)}`
     }
 
     async criar(contexto: ContextoCriacao): Promise<Criacao> {
         try {
             const prompt = this.criarPrompt(contexto)
-            const resposta = (await gemini.enviarPrompt(prompt)) as GeminiResponse
+            const resposta = await gemini.enviarPrompt(prompt)
 
             if (resposta.error) {
                 throw new Error(resposta.error)
             }
 
-            return JSON.parse(resposta.text) as Criacao
+            try {
+                return JSON.parse(resposta.text) as Criacao
+            } catch (parseError) {
+                throw new Error(
+                    `Erro ao processar resposta do Gemini: ${parseError instanceof Error ? parseError.message : 'Erro desconhecido'}`
+                )
+            }
         } catch (erro) {
-            console.error('Erro ao criar elementos:', erro)
-            throw erro
+            throw new Error(
+                `Falha ao criar elementos: ${erro instanceof Error ? erro.message : 'Erro desconhecido'}`
+            )
         }
     }
 }
+

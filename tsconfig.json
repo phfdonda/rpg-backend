@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "ES2022",                /* Versão do JavaScript de saída */
     "module": "CommonJS",              /* Sistema de módulo de saída */
+    "moduleResolution": "node",        /* Estratégia de resolução de módulos */
     "outDir": "./dist",                /* Diretório de saída para arquivos compilados */
     "rootDir": "./src",                /* Diretório raiz dos arquivos TypeScript */
     "strict": true,                    /* Habilita todas as opções de verificação de tipo estrita */
@@ -12,19 +13,18 @@
     "allowJs": true,                   /* Permite que arquivos .js sejam compilados */
     "sourceMap": true,                 /* Gera arquivos .map para depuração */
     "baseUrl": ".",                    /* Define o diretório base para resolução de módulos */
-    "paths": {                         /* Configuração de aliases para importações */
-      "@/*": ["src/*"],
-      "@config/*": ["src/config/*"],
-      "@api/*": ["src/api/*"],
-      "@utils/*": ["src/utils/*"],
-      "@Decisor/*": ["src/modulos/Decisor/*"],
-      "@Narrador/*": ["src/modulos/Narrador/*"],
-      "@Gerenciador/*": ["src/modulos/Gerenciador/*"],
-      "@Criador/*": ["src/modulos/Criador/*"],
-      "@servicos/*": ["src/servicos/*"],
-      "@infra/*": ["src/infra/*"]
+    "paths": {
+      "@/*": ["./src/*"],
+      "@config/*": ["./src/config/*"],
+      "@api/*": ["./src/api/*"],
+      "@utils/*": ["./src/utils/*"],
+      "@Decisor/*": ["./src/modulos/Decisor/*"],
+      "@Narrador/*": ["./src/modulos/Narrador/*"],
+      "@Gerenciador/*": ["./src/modulos/Gerenciador/*"],
+      "@Criador/*": ["./src/modulos/Criador/*"],
+      "@servicos/*": ["./src/servicos/*"],
+      "@infra/*": ["./src/infra/*"]
     },
-    "moduleResolution": "node",        /* Estratégia de resolução de módulos */
     "removeComments": false,           /* Mantém comentários no código compilado */
     "noImplicitAny": true,            /* Gera erro em expressões e declarações com tipo 'any' implícito */
     "noUnusedLocals": true,           /* Reporta erros em variáveis locais não utilizadas */

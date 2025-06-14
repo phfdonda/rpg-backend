@@ -1,5 +1,6 @@
 import { ContextoDecisao, DecisaoArbitro } from '../tipos'
 import { REGRAS_DIFICULDADE, REGRAS_ACASO, REGRAS_SUCESSO } from '../regras'
+import { gemini } from '../../../infra/ia'
 
 /**
  * Classe que representa o Árbitro do jogo.
@@ -84,25 +85,71 @@ ${contexto.acaoJogador}
 #### **Fator de Acaso:**
 
 ${contexto.fatorAcaso}
-`
+
+Responda APENAS com um objeto JSON no seguinte formato:
+{
+    "nivelSucesso": "Falha Crítica" | "Falha" | "Sucesso Parcial" | "Sucesso Total" | "Sucesso Crítico",
+    "descricao": "string com a descrição narrativa do resultado",
+    "modificadores": {
+        "narrativo": number, // -1, 0 ou 1
+        "acaso": number // valor do fator de acaso
+    }
+}`
     }
 
     /**
      * Analisa uma ação e retorna a decisão do Árbitro
      */
     public async analisarAcao(contexto: ContextoDecisao): Promise<DecisaoArbitro> {
-        // TODO: Implementar a lógica de análise usando o Gemini
-        const prompt = this.criarPrompt(contexto)
-        console.log('Prompt gerado:', prompt) // Para debug
+        try {
+            const prompt = this.criarPrompt(contexto)
+            const resposta = await gemini.enviarPrompt(prompt)
 
-        // Por enquanto, retorna uma decisão padrão
-        return {
-            nivelSucesso: 'Sucesso Parcial',
-            descricao: 'A ação foi executada com sucesso parcial, mas com algumas dificuldades.',
-            modificadores: {
-                narrativo: 0,
-                acaso: contexto.fatorAcaso,
-            },
+            if (resposta.error) {
+                throw new Error(resposta.error)
+            }
+
+            try {
+                const decisao = JSON.parse(resposta.text) as DecisaoArbitro
+
+                // Validação básica da estrutura da resposta
+                if (!decisao.nivelSucesso || !decisao.descricao || !decisao.modificadores) {
+                    throw new Error('Resposta do Gemini em formato inválido')
+                }
+
+                // Validação dos valores específicos
+                const niveisValidos = [
+                    'Falha Crítica',
+                    'Falha',
+                    'Sucesso Parcial',
+                    'Sucesso Total',
+                    'Sucesso Crítico',
+                ]
+                if (!niveisValidos.includes(decisao.nivelSucesso)) {
+                    throw new Error('Nível de sucesso inválido na resposta do Gemini')
+                }
+
+                if (
+                    typeof decisao.modificadores.narrativo !== 'number' ||
+                    ![-1, 0, 1].includes(decisao.modificadores.narrativo)
+                ) {
+                    throw new Error('Modificador narrativo inválido na resposta do Gemini')
+                }
+
+                if (typeof decisao.modificadores.acaso !== 'number') {
+                    throw new Error('Modificador de acaso inválido na resposta do Gemini')
+                }
+
+                return decisao
+            } catch (parseError) {
+                throw new Error(
+                    `Erro ao processar resposta do Gemini: ${parseError instanceof Error ? parseError.message : 'Erro desconhecido'}`
+                )
+            }
+        } catch (erro) {
+            throw new Error(
+                `Falha ao analisar ação: ${erro instanceof Error ? erro.message : 'Erro desconhecido'}`
+            )
         }
     }
 }

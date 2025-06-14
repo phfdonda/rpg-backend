@@ -7,6 +7,19 @@ import { DRIVE_CONFIG } from '../../../config/drive'
 import { DriveCredentials, DriveFile } from './tipos'
 
 /**
+ * Erro personalizado para operações do Drive
+ */
+export class DriveError extends Error {
+    constructor(
+        message: string,
+        public readonly originalError?: unknown
+    ) {
+        super(message)
+        this.name = 'DriveError'
+    }
+}
+
+/**
  * Cliente responsável por gerenciar a comunicação com o Google Drive.
  * Implementa funcionalidades de autenticação, upload, download e gerenciamento de arquivos.
  */
@@ -21,12 +34,44 @@ export class DriveCliente {
     private readonly TOKEN_PATH = path.join(process.cwd(), 'token.json')
 
     constructor() {
+        this.validarConfiguracao()
         this.oauth2Client = new google.auth.OAuth2(
             DRIVE_CONFIG.clientId,
             DRIVE_CONFIG.clientSecret,
             DRIVE_CONFIG.redirectUri
         )
         this.drive = google.drive({ version: 'v3', auth: this.oauth2Client })
+        this.carregarTokenSalvo()
+    }
+
+    /**
+     * Valida se todas as configurações necessárias estão presentes
+     */
+    private validarConfiguracao(): void {
+        const camposObrigatorios = ['clientId', 'clientSecret', 'redirectUri', 'pastaId']
+        const camposFaltantes = camposObrigatorios.filter(
+            (campo) => !DRIVE_CONFIG[campo as keyof typeof DRIVE_CONFIG]
+        )
+
+        if (camposFaltantes.length > 0) {
+            throw new DriveError(
+                `Configurações obrigatórias faltando: ${camposFaltantes.join(', ')}`
+            )
+        }
+    }
+
+    /**
+     * Carrega o token salvo se existir
+     */
+    private carregarTokenSalvo(): void {
+        try {
+            if (fs.existsSync(this.TOKEN_PATH)) {
+                const token = JSON.parse(fs.readFileSync(this.TOKEN_PATH, 'utf-8'))
+                this.setCredentials(token)
+            }
+        } catch (error) {
+            console.warn('Não foi possível carregar o token salvo:', error)
+        }
     }
 
     /**
@@ -44,13 +89,17 @@ export class DriveCliente {
      * Troca o código de autorização por tokens de acesso.
      */
     public async handleAuthCode(code: string): Promise<DriveCredentials> {
-        const { tokens } = await this.oauth2Client.getToken(code)
-        this.oauth2Client.setCredentials(tokens)
+        try {
+            const { tokens } = await this.oauth2Client.getToken(code)
+            this.oauth2Client.setCredentials(tokens)
 
-        // Salva o token para uso futuro
-        fs.writeFileSync(this.TOKEN_PATH, JSON.stringify(tokens))
+            // Salva o token para uso futuro
+            fs.writeFileSync(this.TOKEN_PATH, JSON.stringify(tokens))
 
-        return tokens as DriveCredentials
+            return tokens as DriveCredentials
+        } catch (error) {
+            throw new DriveError('Falha ao obter token de acesso', error)
+        }
     }
 
     /**
@@ -64,7 +113,11 @@ export class DriveCliente {
      * Atualiza o token de acesso se necessário.
      */
     public async refreshAccessToken(): Promise<void> {
-        await this.oauth2Client.refreshAccessToken()
+        try {
+            await this.oauth2Client.refreshAccessToken()
+        } catch (error) {
+            throw new DriveError('Falha ao atualizar token de acesso', error)
+        }
     }
 
     /**
@@ -72,6 +125,10 @@ export class DriveCliente {
      */
     public async uploadFile(filePath: string, fileName: string): Promise<string> {
         try {
+            if (!fs.existsSync(filePath)) {
+                throw new DriveError(`Arquivo não encontrado: ${filePath}`)
+            }
+
             const fileMetadata = {
                 name: fileName,
                 mimeType: 'application/json',
@@ -90,13 +147,12 @@ export class DriveCliente {
             })
 
             if (!response.data.id) {
-                throw new Error('ID do arquivo não retornado pelo Google Drive')
+                throw new DriveError('ID do arquivo não retornado pelo Google Drive')
             }
 
             return response.data.id
         } catch (error) {
-            console.error('Erro ao fazer upload do arquivo:', error)
-            throw error
+            throw new DriveError('Erro ao fazer upload do arquivo', error)
         }
     }
 
@@ -110,17 +166,25 @@ export class DriveCliente {
                 { responseType: 'stream' }
             )
 
-            const dest = fs.createWriteStream(destinationPath)
-            response.data
-                .on('end', () => console.log('Download concluído'))
-                .on('error', (err: Error) => {
-                    console.error('Erro durante o download:', err)
-                    throw err
+            return new Promise((resolve, reject) => {
+                const dest = fs.createWriteStream(destinationPath)
+
+                response.data
+                    .on('end', () => {
+                        resolve()
+                    })
+                    .on('error', (err: Error) => {
+                        dest.destroy()
+                        reject(new DriveError('Erro durante o download', err))
+                    })
+                    .pipe(dest)
+
+                dest.on('error', (err) => {
+                    reject(new DriveError('Erro ao salvar arquivo', err))
                 })
-                .pipe(dest)
+            })
         } catch (error) {
-            console.error('Erro ao baixar arquivo:', error)
-            throw error
+            throw new DriveError('Erro ao baixar arquivo', error)
         }
     }
 
@@ -141,8 +205,7 @@ export class DriveCliente {
                 mimeType: file.mimeType || undefined,
             }))
         } catch (error) {
-            console.error('Erro ao listar arquivos:', error)
-            throw error
+            throw new DriveError('Erro ao listar arquivos', error)
         }
     }
 
@@ -165,15 +228,14 @@ export class DriveCliente {
                 mimeType: file.mimeType || undefined,
             }
         } catch (error) {
-            console.error('Erro ao buscar arquivo:', error)
-            throw error
+            throw new DriveError('Erro ao buscar arquivo', error)
         }
     }
 
     /**
      * Atualiza um arquivo existente.
      */
-    public async updateFile(fileId: string, content: any): Promise<void> {
+    public async updateFile<T>(fileId: string, content: T): Promise<void> {
         try {
             await this.drive.files.update({
                 fileId,
@@ -183,15 +245,14 @@ export class DriveCliente {
                 },
             })
         } catch (error) {
-            console.error('Erro ao atualizar arquivo:', error)
-            throw error
+            throw new DriveError('Erro ao atualizar arquivo', error)
         }
     }
 
     /**
      * Cria um novo arquivo.
      */
-    public async createFile(fileName: string, content: any): Promise<string> {
+    public async createFile<T>(fileName: string, content: T): Promise<string> {
         try {
             const fileMetadata = {
                 name: fileName,
@@ -209,13 +270,12 @@ export class DriveCliente {
             })
 
             if (!response.data.id) {
-                throw new Error('ID do arquivo não retornado pelo Google Drive')
+                throw new DriveError('ID do arquivo não retornado pelo Google Drive')
             }
 
             return response.data.id
         } catch (error) {
-            console.error('Erro ao criar arquivo:', error)
-            throw error
+            throw new DriveError('Erro ao criar arquivo', error)
         }
     }
 }

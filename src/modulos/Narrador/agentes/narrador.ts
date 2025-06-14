@@ -3,7 +3,6 @@
  */
 
 import { gemini } from '../../../infra/ia'
-import { GeminiResponse } from '../../../infra/ia/gemini/tipos'
 import { ContextoNarracao, Narracao } from '../tipos'
 import { DIRETRIZES_NARRATIVAS, ESTILO_NARRATIVO, FORMATO_SAIDA } from '../regras'
 
@@ -51,16 +50,23 @@ Responda apenas com um objeto JSON contendo:
     async narrar(contexto: ContextoNarracao): Promise<Narracao> {
         try {
             const prompt = this.criarPrompt(contexto)
-            const resposta = (await gemini.enviarPrompt(prompt)) as GeminiResponse
+            const resposta = await gemini.enviarPrompt(prompt)
 
             if (resposta.error) {
                 throw new Error(resposta.error)
             }
 
-            return JSON.parse(resposta.text) as Narracao
+            try {
+                return JSON.parse(resposta.text) as Narracao
+            } catch (parseError) {
+                throw new Error(
+                    `Erro ao processar resposta do Gemini: ${parseError instanceof Error ? parseError.message : 'Erro desconhecido'}`
+                )
+            }
         } catch (erro) {
-            console.error('Erro ao gerar narrativa:', erro)
-            throw erro
+            throw new Error(
+                `Falha ao gerar narrativa: ${erro instanceof Error ? erro.message : 'Erro desconhecido'}`
+            )
         }
     }
 }

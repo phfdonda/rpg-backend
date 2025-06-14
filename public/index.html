@@ -196,11 +196,14 @@
             const message = messageInput.value.trim();
             if (!message) return;
 
+            console.log('1. Iniciando envio da mensagem:', message);
+
             // Add user message to chat
             addMessage(message, true);
             messageInput.value = '';
 
             try {
+                console.log('2. Enviando requisição para /api/chat');
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: {
@@ -211,14 +214,26 @@
                     })
                 });
 
+                console.log('3. Resposta recebida:', response.status);
                 const data = await response.json();
-                if (data.story) {
-                    addMessage(data.story);
+                console.log('4. Dados da resposta:', JSON.stringify(data, null, 2));
+
+                if (data.resposta) {
+                    console.log('5a. Exibindo resposta:', data.resposta);
+                    addMessage(data.resposta);
+                } else if (data.mensagem) {
+                    console.log('5b. Exibindo mensagem:', data.mensagem);
+                    addMessage(data.mensagem);
+                } else if (data.error) {
+                    console.log('5c. Erro recebido:', data.error);
+                    addMessage(data.error);
                 } else {
+                    console.log('5d. Nenhuma resposta válida encontrada');
+                    console.log('5d. Dados recebidos:', data);
                     addMessage('Desculpe, ocorreu um erro ao processar sua mensagem.');
                 }
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Erro no envio da mensagem:', error);
                 addMessage('Desculpe, ocorreu um erro ao enviar sua mensagem.');
             }
         }
