@@ -17,7 +17,12 @@
       "@config/*": ["src/config/*"],
       "@api/*": ["src/api/*"],
       "@utils/*": ["src/utils/*"],
-      "@types/*": ["src/types/*"]
+      "@Decisor/*": ["src/modulos/Decisor/*"],
+      "@Narrador/*": ["src/modulos/Narrador/*"],
+      "@Gerenciador/*": ["src/modulos/Gerenciador/*"],
+      "@Criador/*": ["src/modulos/Criador/*"],
+      "@servicos/*": ["src/servicos/*"],
+      "@infra/*": ["src/infra/*"]
     },
     "moduleResolution": "node",        /* Estratégia de resolução de módulos */
     "removeComments": false,           /* Mantém comentários no código compilado */
@@ -25,8 +30,14 @@
     "noUnusedLocals": true,           /* Reporta erros em variáveis locais não utilizadas */
     "noUnusedParameters": true,        /* Reporta erros em parâmetros não utilizados */
     "noImplicitReturns": true,        /* Reporta erro quando nem todos os caminhos em uma função retornam um valor */
-    "noFallthroughCasesInSwitch": true /* Reporta erros para casos de fallthrough em switch */
+    "noFallthroughCasesInSwitch": true, /* Reporta erros para casos de fallthrough em switch */
+    "types": ["node"]
   },
-  "include": ["src/**/*.ts", "src/**/*.js"], /* Inclui todos os arquivos TypeScript e JavaScript na pasta src */
-  "exclude": ["node_modules", "dist"]  /* Exclui a pasta node_modules e dist */
+  "ts-node": {
+    "require": ["tsconfig-paths/register"]
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
 }

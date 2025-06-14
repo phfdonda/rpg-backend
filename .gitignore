@@ -1,3 +1,5 @@
 .env
 node_modules/
-dist/
+dist/credentials.json
+credentials.json
+conversation.json
